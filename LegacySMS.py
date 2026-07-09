@@ -2,7 +2,7 @@ from colorama import Fore, Style
 from time import sleep
 from os import system
 from sms_api import SendSms
-from tc_sorgu import tc_sorgu_menu
+from whatsapp_api import WhatsAppSpam
 import threading
 import inspect
 
@@ -22,13 +22,17 @@ for i in range(10, 0, -1):
     sleep(1)
 print("\n")
 
-# Servis listesini yükle
+# Servis listelerini yukle
 servisler_sms = [
     name for name, method in inspect.getmembers(SendSms, predicate=inspect.isfunction)
     if not name.startswith("_")
 ]
+servisler_wa = [
+    name for name, method in inspect.getmembers(WhatsAppSpam, predicate=inspect.isfunction)
+    if not name.startswith("_")
+]
 
-print(Fore.LIGHTCYAN_EX + f"[i] {len(servisler_sms)} aktif SMS servisi yuklendi." + Style.RESET_ALL)
+print(Fore.LIGHTCYAN_EX + f"[i] SMS: {len(servisler_sms)} servis | WhatsApp: {len(servisler_wa)} servis yuklendi." + Style.RESET_ALL)
 sleep(2)
 
 # Bu Tool https://github.com/s4m3dnotfound/LegacySMS Adresine Aittir...
@@ -128,7 +132,7 @@ while True:
         f"{Fore.LIGHTGREEN_EX}UYARI: Tamamen Egitim Amaclidir.{Style.RESET_ALL}    "
         f"{Fore.LIGHTBLUE_EX}Gelistirici:{Style.RESET_ALL} s4m3dnotfound    "
         f"{Fore.LIGHTRED_EX}Surum:{Style.RESET_ALL} LegacySMS v2    "
-        f"{Fore.LIGHTCYAN_EX}SMS Servisleri: {len(servisler_sms)}{Style.RESET_ALL}"
+        f"{Fore.LIGHTCYAN_EX}SMS:{len(servisler_sms)} | WA:{len(servisler_wa)}{Style.RESET_ALL}"
     )
     print()
 
@@ -136,7 +140,7 @@ while True:
         menu = input(
             Fore.LIGHTWHITE_EX +
             " 1- SMS Gonder\n\n"
-            " 2- TC Kimlik Sorgu\n\n"
+            " 2- WhatsApp Spam\n\n"
             " 3- Cikis\n\n" +
             Fore.LIGHTGREEN_EX + " Secim: "
         )
@@ -188,9 +192,50 @@ while True:
         print(Fore.LIGHTRED_EX + "\nAna ekrana donmek icin 'Enter' tusuna bas")
         input()
 
-    # ── SEÇENEK 2: TC KİMLİK SORGU ────────────────────────────────
+    # ── SEÇENEK 2: WHATSAPP SPAM ───────────────────────────────────
     elif menu == 2:
-        tc_sorgu_menu(system, sleep)
+        tel_liste = _tel_al("WA Spam numarasini yaziniz (basa '0' eklemeden): ")
+        if not tel_liste:
+            continue
+
+        kere = _kere_al()
+        if kere == -1:
+            continue
+        aralik = _aralik_al()
+
+        system("cls||clear")
+        print(Fore.LIGHTGREEN_EX + "[*] WhatsApp spam baslatiliyor..." + Style.RESET_ALL)
+        print(Fore.LIGHTYELLOW_EX + "[!] Durdurmak icin Ctrl+C\n" + Style.RESET_ALL)
+
+        def _wa_gonder(wa_obj, aralik, kere):
+            while True:
+                for servis_adi in servisler_wa:
+                    if kere is not None and wa_obj.adet >= kere:
+                        return
+                    try:
+                        getattr(wa_obj, servis_adi)()
+                    except Exception as e:
+                        pass
+                    if aralik > 0:
+                        sleep(aralik)
+                if kere is not None and wa_obj.adet >= kere:
+                    return
+
+        threads = []
+        for numara in tel_liste:
+            wa = WhatsAppSpam(numara)
+            t = threading.Thread(target=_wa_gonder, args=(wa, aralik, kere), daemon=True)
+            threads.append(t)
+            t.start()
+
+        try:
+            for t in threads:
+                t.join()
+        except KeyboardInterrupt:
+            print(Fore.LIGHTYELLOW_EX + "\n[!] Iptal edildi." + Style.RESET_ALL)
+
+        print(Fore.LIGHTRED_EX + "\nAna ekrana donmek icin 'Enter' tusuna bas")
+        input()
 
     # ── SEÇENEK 3: ÇIKIŞ ───────────────────────────────────────────
     elif menu == 3:
