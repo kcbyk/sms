@@ -2,7 +2,7 @@ from colorama import Fore, Style
 from time import sleep
 from os import system
 from sms_api import SendSms
-from call_api import VoiceCall
+from tc_sorgu import tc_sorgu_menu
 import threading
 import inspect
 
@@ -22,17 +22,13 @@ for i in range(10, 0, -1):
     sleep(1)
 print("\n")
 
-# Servis listelerini yükle
+# Servis listesini yükle
 servisler_sms = [
     name for name, method in inspect.getmembers(SendSms, predicate=inspect.isfunction)
     if not name.startswith("_")
 ]
-servisler_call = [
-    name for name, method in inspect.getmembers(VoiceCall, predicate=inspect.isfunction)
-    if not name.startswith("_")
-]
 
-print(Fore.LIGHTCYAN_EX + f"[i] SMS Servisleri: {len(servisler_sms)} | Sesli Arama: {len(servisler_call)}" + Style.RESET_ALL)
+print(Fore.LIGHTCYAN_EX + f"[i] {len(servisler_sms)} aktif SMS servisi yuklendi." + Style.RESET_ALL)
 sleep(2)
 
 # Bu Tool https://github.com/s4m3dnotfound/LegacySMS Adresine Aittir...
@@ -114,24 +110,6 @@ def _servisleri_gonder(sms_obj, aralik, kere=None):
 
 
 # ─────────────────────────────────────────────
-#  SESLİ ARAMA
-# ─────────────────────────────────────────────
-def _sesli_ara(call_obj, aralik, kere=None):
-    while True:
-        for servis_adi in servisler_call:
-            if kere is not None and call_obj.adet >= kere:
-                return
-            try:
-                getattr(call_obj, servis_adi)()
-            except Exception as e:
-                print(f"{Fore.LIGHTRED_EX}[!] {servis_adi} cagirilamadi: {e}{Style.RESET_ALL}")
-            if aralik > 0:
-                sleep(aralik)
-        if kere is not None and call_obj.adet >= kere:
-            return
-
-
-# ─────────────────────────────────────────────
 #  ANA MENÜ
 # ─────────────────────────────────────────────
 while True:
@@ -150,7 +128,7 @@ while True:
         f"{Fore.LIGHTGREEN_EX}UYARI: Tamamen Egitim Amaclidir.{Style.RESET_ALL}    "
         f"{Fore.LIGHTBLUE_EX}Gelistirici:{Style.RESET_ALL} s4m3dnotfound    "
         f"{Fore.LIGHTRED_EX}Surum:{Style.RESET_ALL} LegacySMS v2    "
-        f"{Fore.LIGHTCYAN_EX}SMS:{len(servisler_sms)} | Arama:{len(servisler_call)}{Style.RESET_ALL}"
+        f"{Fore.LIGHTCYAN_EX}SMS Servisleri: {len(servisler_sms)}{Style.RESET_ALL}"
     )
     print()
 
@@ -158,7 +136,7 @@ while True:
         menu = input(
             Fore.LIGHTWHITE_EX +
             " 1- SMS Gonder\n\n"
-            " 2- Sesli Arama\n\n"
+            " 2- TC Kimlik Sorgu\n\n"
             " 3- Cikis\n\n" +
             Fore.LIGHTGREEN_EX + " Secim: "
         )
@@ -210,47 +188,9 @@ while True:
         print(Fore.LIGHTRED_EX + "\nAna ekrana donmek icin 'Enter' tusuna bas")
         input()
 
-    # ── SEÇENEK 2: SESLİ ARAMA ─────────────────────────────────────
+    # ── SEÇENEK 2: TC KİMLİK SORGU ────────────────────────────────
     elif menu == 2:
-        system("cls||clear")
-        print(Fore.LIGHTCYAN_EX + """
-╔══════════════════════════════════════════════╗
-║          SESLI ARAMA MODULU - v2             ║
-║  Hedef numarayi otomatik olarak arar ve      ║
-║  sesli OTP/bildirim mesaji gonderir.         ║
-╚══════════════════════════════════════════════╝
-""" + Style.RESET_ALL)
-        sleep(1)
-
-        tel_liste = _tel_al("Arama yapilacak numarayi yaziniz (basa '0' eklemeden): ")
-        if not tel_liste:
-            continue
-
-        kere = _kere_al()
-        if kere == -1:
-            continue
-        aralik = _aralik_al()
-
-        system("cls||clear")
-        print(Fore.LIGHTCYAN_EX + f"[*] {len(tel_liste)} numara icin sesli arama baslatiliyor..." + Style.RESET_ALL)
-        print(Fore.LIGHTYELLOW_EX + "[!] Durdurmak icin Ctrl+C'ye basin." + Style.RESET_ALL)
-        print()
-
-        threads = []
-        for numara in tel_liste:
-            call = VoiceCall(numara)
-            t = threading.Thread(target=_sesli_ara, args=(call, aralik, kere), daemon=True)
-            threads.append(t)
-            t.start()
-
-        try:
-            for t in threads:
-                t.join()
-        except KeyboardInterrupt:
-            print(Fore.LIGHTYELLOW_EX + "\n[!] Sesli arama iptal edildi." + Style.RESET_ALL)
-
-        print(Fore.LIGHTRED_EX + "\nAna ekrana donmek icin 'Enter' tusuna bas")
-        input()
+        tc_sorgu_menu(system, sleep)
 
     # ── SEÇENEK 3: ÇIKIŞ ───────────────────────────────────────────
     elif menu == 3:
